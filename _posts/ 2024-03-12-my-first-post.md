@@ -1,6 +1,6 @@
 ---
-title:  "[Jekyll] 블로그 첫 번쨰 test post"
-excerpt: "이 블로그로 난 어떻게 내 인생의 줄기를 선택해볼까. "
+title:  "[Jekyll] test"
+excerpt: "test "
 
 categories:
   - Blog
@@ -14,6 +14,6 @@ date: 2024-03-12
 last_modified_at: 2024-03-12
 ---
 
-### 하이 빵가루
-## 하이 빵가루
-# 하이 빵가루
+### test
+## test
+# test
