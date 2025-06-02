@@ -8,12 +8,19 @@
 
 	async function handleExtract() {
 		adId = extractAdIdFromUrl(adUrl);
-		if (!adId) return alert('잘못된 광고 URL입니다.');
 
+		if (!adId) {
+			alert('❌ 유효한 Facebook 광고 URL이 아닙니다.');
+			return;
+		}
+
+		console.log('✅ 추출된 광고 ID:', adId);
 		videoUrl = await extractVideoUrl(adId);
 
 		if (!videoUrl) {
 			alert('❌ 동영상을 찾을 수 없습니다.');
+		} else {
+			console.log('✅ 추출된 videoUrl:', videoUrl);
 		}
 	}
 </script>
@@ -22,27 +29,35 @@
 	<h1 class="text-2xl font-bold mb-4">📺 Facebook 광고 동영상 추출기</h1>
 
 	<input
-		type="text"
-		bind:value={adUrl}
-		placeholder="예: https://www.facebook.com/ads/library/?id=1234567890"
 		class="border px-3 py-2 w-full rounded mb-3"
+		type="text"
+		placeholder="예: https://www.facebook.com/ads/library/?id=1234567890"
+		bind:value={adUrl}
 	/>
 
 	<button
+		class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full"
 		on:click={handleExtract}
-		class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
 	>
-		📥 광고 동영상 추출
+		🔍 광고 동영상 추출
 	</button>
 
 	{#if adId}
-		<p class="mt-4 text-green-600">✅ 광고 ID: {adId}</p>
+		<p class="mt-4 text-green-700">✅ 광고 ID: <strong>{adId}</strong></p>
 	{/if}
 
 	{#if videoUrl}
-		<video controls class="mt-4 w-full rounded">
-			<source src={videoUrl} type="video/mp4" />
-			비디오를 재생할 수 없습니다.
-		</video>
+		<div class="mt-6">
+			<p class="text-green-800 font-semibold">🎥 동영상 미리보기:</p>
+			<video class="mt-2 rounded w-full" controls src={videoUrl}></video>
+
+			<a
+				href={videoUrl}
+				download={`facebook-ad-${adId}.mp4`}
+				class="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+			>
+				⬇️ 동영상 다운로드
+			</a>
+		</div>
 	{/if}
 </div>
