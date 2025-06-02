@@ -1,56 +1,25 @@
-<!-- src/routes/+page.svelte -->
 <script lang="ts">
+	import { extractAdIdFromUrl, extractVideoUrl } from '$lib/utils';
+
 	let adUrl = '';
-	let adId: string | null = null;
+	let videoUrl: string | null = null;
 
-	function extractAdIdFromUrl(url: string): string | null {
-		const match = url.match(/id=(\d+)/);
-		return match ? match[1] : null;
-	}
+	async function handleExtract() {
+		const adId = extractAdIdFromUrl(adUrl);
+		if (!adId) return alert('잘못된 광고 URL입니다.');
 
-	function handleSubmit() {
-		adId = extractAdIdFromUrl(adUrl);
+		videoUrl = await extractVideoUrl(adId);
 
-		if (adId) {
-			console.log('✅ 추출된 광고 ID:', adId);
-			downloadAdId(adId);
-		} else {
-			console.log('❌ 광고 ID 추출 실패');
-			alert('유효한 Facebook 광고 URL이 아닙니다.');
+		if (!videoUrl) {
+			alert('❌ 동영상을 찾을 수 없습니다.');
 		}
-	}
-
-	function downloadAdId(id: string) {
-		const blob = new Blob([id], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'ad-id.txt';
-		a.click();
-
-		URL.revokeObjectURL(url);
 	}
 </script>
 
-<div class="p-6 max-w-xl mx-auto">
-	<h1 class="text-2xl font-bold mb-4">📺 광고 동영상 추출기</h1>
+<input bind:value={adUrl} placeholder="광고 URL 입력" />
+<button on:click={handleExtract}>🎥 광고 동영상 추출</button>
 
-	<input
-		class="border px-3 py-2 w-full rounded mb-3"
-		type="text"
-		placeholder="예: https://www.facebook.com/ads/library/?id=1234567890"
-		bind:value={adUrl}
-	/>
-
-	<button
-		class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-		on:click={handleSubmit}
-	>
-		📥 광고 ID 추출 및 다운로드
-	</button>
-
-	{#if adId}
-		<p class="mt-4 text-green-600 font-medium">🔎 추출된 광고 ID: <strong>{adId}</strong></p>
-	{/if}
-</div>
+{#if videoUrl}
+	<video controls src={videoUrl} width="100%" />
+	<p><a href={videoUrl} download>📥 다운로드</a></p>
+{/if}

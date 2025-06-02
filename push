@@ -1,0 +1,8 @@
+!/bin/bash
+rm ./docs
+npm run build
+mv build docs
+touch docs/.nojekyll
+git add .
+git commit -m "Update docs"
+git push --force
