@@ -1,54 +1,48 @@
-const express = require('express');
-const fetch = require('node-fetch');
-const cheerio = require('cheerio');
+<!-- src/routes/+page.svelte -->
+<script lang="ts">
+	import { extractAdIdFromUrl, extractVideoUrl } from '$lib/utils';
 
-const app = express();
+	let adUrl = '';
+	let adId: string | null = null;
+	let videoUrl: string | null = null;
 
-app.use((_, res, next) => {
-	res.setHeader('Access-Control-Allow-Origin', '*');
-	next();
-});
+	async function handleExtract() {
+		adId = extractAdIdFromUrl(adUrl);
+		if (!adId) return alert('잘못된 광고 URL입니다.');
 
-app.get('/fb-video', async (req, res) => {
-	const id = req.query.id;
-	if (!id) return res.status(400).json({ error: 'Missing ad ID' });
+		videoUrl = await extractVideoUrl(adId);
 
-	const targetUrl = `https://www.facebook.com/ads/library/?id=${id}`;
-
-	try {
-		const html = await fetch(targetUrl, {
-			headers: {
-				'User-Agent':
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/119 Safari/537.36',
-			},
-		}).then((r) => r.text());
-
-		// 동영상 URL 추출 (JS 객체 파싱 기반)
-		const match = html.match(/"playable_url":"(https:\\/\\/video[^"]+)"/);
-
-		if (match) {
-			const rawUrl = match[1];
-			const cleanUrl = rawUrl
-				.replace(/\\u0025/g, '%')
-				.replace(/\\\//g, '/');
-			return res.json({ videoUrl: decodeURIComponent(cleanUrl) });
+		if (!videoUrl) {
+			alert('❌ 동영상을 찾을 수 없습니다.');
 		}
-
-		// 백업 플랜: 고화질 URL 있는 경우
-		const hdMatch = html.match(/"playable_url_quality_hd":"(https:\\/\\/video[^"]+)"/);
-		if (hdMatch) {
-			const rawUrl = hdMatch[1];
-			const cleanUrl = rawUrl
-				.replace(/\\u0025/g, '%')
-				.replace(/\\\//g, '/');
-			return res.json({ videoUrl: decodeURIComponent(cleanUrl) });
-		}
-
-		return res.json({ videoUrl: null });
-	} catch (err) {
-		console.error('❌ ERROR FETCHING:', err);
-		return res.status(500).json({ error: 'Facebook 페이지 요청 실패' });
 	}
-});
+</script>
 
-app.listen(3000, () => console.log('✅ Proxy listening on http://localhost:3000'));
+<div class="p-6 max-w-xl mx-auto">
+	<h1 class="text-2xl font-bold mb-4">📺 Facebook 광고 동영상 추출기</h1>
+
+	<input
+		type="text"
+		bind:value={adUrl}
+		placeholder="예: https://www.facebook.com/ads/library/?id=1234567890"
+		class="border px-3 py-2 w-full rounded mb-3"
+	/>
+
+	<button
+		on:click={handleExtract}
+		class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+	>
+		📥 광고 동영상 추출
+	</button>
+
+	{#if adId}
+		<p class="mt-4 text-green-600">✅ 광고 ID: {adId}</p>
+	{/if}
+
+	{#if videoUrl}
+		<video controls class="mt-4 w-full rounded">
+			<source src={videoUrl} type="video/mp4" />
+			비디오를 재생할 수 없습니다.
+		</video>
+	{/if}
+</div>
