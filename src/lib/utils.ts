@@ -6,7 +6,6 @@ export function extractAdIdFromUrl(url: string): string | null {
 
 // 실사용 전용 proxy backend 없이 동작하긴 어려움
 export async function extractVideoUrl(adId: string): Promise<string | null> {
-	const res = await fetch(`https://your-proxy-server.com/fb-video?id=${adId}`);
-	const data = await res.json();
-	return data.videoUrl ?? null;
+	// 테스트용 공개 mp4
+	return 'https://www.w3schools.com/html/mov_bbb.mp4';
 }
