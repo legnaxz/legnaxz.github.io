@@ -1,77 +1,54 @@
-<!-- src/routes/+page.svelte -->
-<script lang="ts">
-	let adUrl = '';
-	let adId: string | null = null;
-	let videoUrl: string | null = null;
+const express = require('express');
+const fetch = require('node-fetch');
+const cheerio = require('cheerio');
 
-	// 광고 URL에서 adId 추출
-	function extractAdIdFromUrl(url: string): string | null {
-		const match = url.match(/id=(\d+)/);
-		return match ? match[1] : null;
-	}
+const app = express();
 
-	// 프록시 서버로부터 video URL 추출
-	async function handleExtractVideo() {
-		adId = extractAdIdFromUrl(adUrl);
-		videoUrl = null;
+app.use((_, res, next) => {
+	res.setHeader('Access-Control-Allow-Origin', '*');
+	next();
+});
 
-		if (!adId) {
-			alert('⚠️ 유효한 Facebook 광고 URL이 아닙니다.');
-			return;
+app.get('/fb-video', async (req, res) => {
+	const id = req.query.id;
+	if (!id) return res.status(400).json({ error: 'Missing ad ID' });
+
+	const targetUrl = `https://www.facebook.com/ads/library/?id=${id}`;
+
+	try {
+		const html = await fetch(targetUrl, {
+			headers: {
+				'User-Agent':
+					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/119 Safari/537.36',
+			},
+		}).then((r) => r.text());
+
+		// 동영상 URL 추출 (JS 객체 파싱 기반)
+		const match = html.match(/"playable_url":"(https:\\/\\/video[^"]+)"/);
+
+		if (match) {
+			const rawUrl = match[1];
+			const cleanUrl = rawUrl
+				.replace(/\\u0025/g, '%')
+				.replace(/\\\//g, '/');
+			return res.json({ videoUrl: decodeURIComponent(cleanUrl) });
 		}
 
-		try {
-			const res = await fetch(`http://localhost:3000/fb-video?id=${adId}`);
-			const data = await res.json();
-
-			if (data.videoUrl) {
-				videoUrl = data.videoUrl;
-			} else {
-				alert('❌ 동영상을 찾을 수 없습니다.');
-			}
-		} catch (err) {
-			console.error('❌ 동영상 추출 실패:', err);
-			alert('❌ 동영상 추출 중 오류가 발생했습니다.');
+		// 백업 플랜: 고화질 URL 있는 경우
+		const hdMatch = html.match(/"playable_url_quality_hd":"(https:\\/\\/video[^"]+)"/);
+		if (hdMatch) {
+			const rawUrl = hdMatch[1];
+			const cleanUrl = rawUrl
+				.replace(/\\u0025/g, '%')
+				.replace(/\\\//g, '/');
+			return res.json({ videoUrl: decodeURIComponent(cleanUrl) });
 		}
+
+		return res.json({ videoUrl: null });
+	} catch (err) {
+		console.error('❌ ERROR FETCHING:', err);
+		return res.status(500).json({ error: 'Facebook 페이지 요청 실패' });
 	}
-</script>
+});
 
-<div class="p-6 max-w-xl mx-auto">
-	<h1 class="text-2xl font-bold mb-4">📺 Facebook 광고 동영상 추출기</h1>
-
-	<input
-		class="border px-3 py-2 w-full rounded mb-3"
-		type="text"
-		placeholder="예: https://www.facebook.com/ads/library/?id=1234567890"
-		bind:value={adUrl}
-	/>
-
-	<button
-		class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-		on:click={handleExtractVideo}
-	>
-		🎬 광고 동영상 추출
-	</button>
-
-	{#if adId}
-		<p class="mt-4 text-green-600 font-medium">🔎 광고 ID: <strong>{adId}</strong></p>
-	{/if}
-
-	{#if videoUrl}
-		<div class="mt-6">
-			<p class="text-lg font-semibold mb-2">📽️ 추출된 동영상:</p>
-			<video controls class="w-full rounded shadow">
-				<source src={videoUrl} type="video/mp4" />
-				Your browser does not support the video tag.
-			</video>
-
-			<a
-				href={videoUrl}
-				download="facebook-ad-video.mp4"
-				class="block mt-4 text-blue-600 underline"
-			>
-				⬇️ 동영상 다운로드
-			</a>
-		</div>
-	{/if}
-</div>
+app.listen(3000, () => console.log('✅ Proxy listening on http://localhost:3000'));
