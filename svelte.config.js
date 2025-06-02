@@ -4,7 +4,7 @@ const config = {
   kit: {
     adapter: adapter(),
     paths: {
-      base: '/legnaxz.github.io', // 또는 '/yourname.github.io' 로 설정할 수도 있음
+      base: '', // 또는 '/yourname.github.io' 로 설정할 수도 있음
     }
   }
 };
