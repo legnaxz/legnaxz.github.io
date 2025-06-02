@@ -4,18 +4,18 @@
 	let adId: string | null = null;
 
 	function extractAdIdFromUrl(url: string): string | null {
-		// 여기서 실제 Facebook 광고 URL에서 ID를 추출하는 로직을 구현할 수 있어
-		// 예: https://www.facebook.com/ads/library/?id=1234567890
 		const match = url.match(/id=(\d+)/);
 		return match ? match[1] : null;
 	}
 
 	function handleSubmit() {
 		adId = extractAdIdFromUrl(adUrl);
+
 		if (adId) {
 			console.log('✅ 추출된 광고 ID:', adId);
 			downloadAdId(adId);
 		} else {
+			console.log('❌ 광고 ID 추출 실패');
 			alert('유효한 Facebook 광고 URL이 아닙니다.');
 		}
 	}
@@ -39,7 +39,7 @@
 	<input
 		class="border px-3 py-2 w-full rounded mb-3"
 		type="text"
-		placeholder="Facebook 광고 상세 URL 입력"
+		placeholder="예: https://www.facebook.com/ads/library/?id=1234567890"
 		bind:value={adUrl}
 	/>
 
