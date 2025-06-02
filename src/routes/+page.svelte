@@ -1,17 +1,35 @@
 <!-- src/routes/+page.svelte -->
 <script lang="ts">
-	import { extractAdId } from '$lib/utils';
-
 	let adUrl = '';
 	let adId: string | null = null;
 
+	function extractAdIdFromUrl(url: string): string | null {
+		// 여기서 실제 Facebook 광고 URL에서 ID를 추출하는 로직을 구현할 수 있어
+		// 예: https://www.facebook.com/ads/library/?id=1234567890
+		const match = url.match(/id=(\d+)/);
+		return match ? match[1] : null;
+	}
+
 	function handleSubmit() {
-		adId = extractAdId(adUrl);
+		adId = extractAdIdFromUrl(adUrl);
 		if (adId) {
 			console.log('✅ 추출된 광고 ID:', adId);
+			downloadAdId(adId);
 		} else {
 			alert('유효한 Facebook 광고 URL이 아닙니다.');
 		}
+	}
+
+	function downloadAdId(id: string) {
+		const blob = new Blob([id], { type: 'text/plain' });
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'ad-id.txt';
+		a.click();
+
+		URL.revokeObjectURL(url);
 	}
 </script>
 
@@ -29,10 +47,10 @@
 		class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
 		on:click={handleSubmit}
 	>
-		광고 ID 추출
+		📥 광고 ID 추출 및 다운로드
 	</button>
 
 	{#if adId}
-		<p class="mt-4 text-green-600 font-medium">🔎 광고 ID: {adId}</p>
+		<p class="mt-4 text-green-600 font-medium">🔎 추출된 광고 ID: <strong>{adId}</strong></p>
 	{/if}
 </div>
