@@ -1,5 +1,5 @@
-!/bin/bash
-rm ./docs
+f/bin/bash
+rm -rf ./docs
 npm run build
 mv build docs
 touch docs/.nojekyll
