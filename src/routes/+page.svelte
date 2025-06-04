@@ -22,8 +22,11 @@
     const endpoint = `${apiBase}/fb-video?url=${encodedUrl}`;
 
     try {
-      const response = await fetch(endpoint);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+const response = await fetch(endpoint, {
+  headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
+});      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const data = await response.json();
       if (data.videoUrl) {
