@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-
+  import { fetchFbVideo } from '$lib/api/fetchVideo';
   let adUrl = '';
   let videoUrl: string | null = null;
   let isLoading = false;
@@ -21,7 +21,11 @@
     const endpoint = `${apiBase}/fb-video?url=${encodedUrl}`;
 
     try {
-      const response = await fetch(endpoint);
+      const response = await fetch(endpoint, {
+  headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
+});
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
