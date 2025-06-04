@@ -7,7 +7,7 @@ export function extractAdIdFromUrl(url: string): string | null {
 export async function extractVideoUrl(adUrl: string): Promise<string | null> {
 	try {
 		const response = await fetch(
-			`https://6aaf-118-130-112-221.ngrok-free.app/fb-video?url=${encodeURIComponent(adUrl)}`
+			`https://4221-118-130-112-221.ngrok-free.app/fb-video?url=${encodeURIComponent(adUrl)}`
 		);
 		const data = await response.json();
 		return data.videoUrl || null;
