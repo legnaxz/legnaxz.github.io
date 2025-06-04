@@ -8,38 +8,47 @@
   let errorMessage = '';
 
   async function extractVideoUrl() {
-    if (!adUrl.includes('facebook.com/ads/library/?id=')) {
-      errorMessage = '올바른 Facebook 광고 URL을 입력해주세요.';
-      return;
-    }
-
-    isLoading = true;
-    videoUrl = null;
-    videoTitle = '';
-    errorMessage = '';
-
-    try {
-      const data = await fetchFbVideo(adUrl);
-      if (data.videoUrl) {
-        videoUrl = data.videoUrl;
-        videoTitle = data.title || 'facebook_video';
-
-        // ✅ 자동 다운로드 트리거
-        const a = document.createElement('a');
-        a.href = videoUrl;
-        a.download = sanitizeFilename(videoTitle) + '.mp4';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        errorMessage = '동영상을 찾을 수 없습니다.';
-      }
-    } catch (err) {
-      errorMessage = `요청 실패: ${err.message}`;
-    } finally {
-      isLoading = false;
-    }
+  if (!adUrl.includes('facebook.com/ads/library/?id=')) {
+    errorMessage = '올바른 Facebook 광고 URL을 입력해주세요.';
+    return;
   }
+
+  isLoading = true;
+  videoUrl = null;
+  videoTitle = '';
+  errorMessage = '';
+
+  try {
+    const data = await fetchFbVideo(adUrl);
+    if (data.videoUrl) {
+      videoUrl = data.videoUrl;
+      videoTitle = data.title || 'facebook_video';
+
+      // ✅ 자동 다운로드 트리거
+      const a = document.createElement('a');
+      a.href = videoUrl;
+      a.download = sanitizeFilename(videoTitle) + '.mp4';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // ✅ UI 초기화
+      setTimeout(() => {
+        adUrl = '';
+        videoUrl = null;
+        videoTitle = '';
+        errorMessage = '';
+      }, 1000); // 1초 뒤 초기화
+    } else {
+      errorMessage = '동영상을 찾을 수 없습니다.';
+    }
+  } catch (err) {
+    errorMessage = `요청 실패: ${err.message}`;
+  } finally {
+    isLoading = false;
+  }
+}
 
   // 파일명에서 특수문자 제거 (크롬 안정성)
   function sanitizeFilename(name: string): string {
