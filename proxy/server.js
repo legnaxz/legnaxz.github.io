@@ -1,14 +1,15 @@
-// server.js
 import express from 'express';
 import puppeteer from 'puppeteer';
 
 const app = express();
-app.use(express.json());
+
+app.use((_, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+});
 
 app.get('/fb-video', async (req, res) => {
-    const { url } = req.query;
-
-    if (!url) return res.status(400).json({ error: 'Missing Facebook post URL' });
+    const adUrl = req.query.url;
 
     try {
         const browser = await puppeteer.launch({
@@ -16,39 +17,34 @@ app.get('/fb-video', async (req, res) => {
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
         });
         const page = await browser.newPage();
+        await page.goto(adUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
-        await page.goto(url, {
-            waitUntil: 'networkidle2',
-            timeout: 45000,
-        });
-
-        // 동영상 재생 버튼 클릭 시도
+        // 광고 재생 버튼 강제 클릭
         await page.evaluate(() => {
-            const playButton = document.querySelector('div[role="button"][tabindex]');
-            if (playButton) playButton.click();
+            const button = document.querySelector('div[role="button"][tabindex]');
+            if (button) button.click();
         });
 
-        await page.waitForTimeout(5000); // 동영상 로딩 대기
+        // 약간 기다림 (JS 동적 로딩 대비)
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
-        // video 태그 안에 있는 mp4 링크 추출
-        const videoUrl = await page.evaluate(() => {
-            const video = document.querySelector('video');
-            return video?.src || null;
-        });
+        const content = await page.content();
 
+        const match = content.match(/"playable_url":"(https:\/\/video[^"]+)"/);
         await browser.close();
 
-        if (videoUrl) {
-            res.json({ videoUrl });
+        if (match) {
+            const cleanedUrl = match[1].replace(/\\\//g, '/');
+            return res.json({ videoUrl: decodeURIComponent(cleanedUrl) });
         } else {
-            res.json({ videoUrl: null });
+            return res.json({ videoUrl: null });
         }
     } catch (err) {
-        console.error('❌ Puppeteer error:', err);
-        res.status(500).json({ error: 'Puppeteer failed' });
+        console.error('puppeteer error:', err);
+        return res.status(500).json({ error: 'Puppeteer failed' });
     }
 });
 
 app.listen(3000, '0.0.0.0', () => {
-    console.log('✅ Proxy ready at http://0.0.0.0:3000');
+    console.log('✅ Proxy with puppeteer ready on http://0.0.0.0:3000');
 });
