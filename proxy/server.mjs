@@ -4,6 +4,8 @@ import puppeteer from 'puppeteer';
 const app = express();
 app.use(express.json());
 
+// ✅ 모든 도메인에서 접근 허용
+app.use(cors());
 app.use((_, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     next();
