@@ -16,7 +16,7 @@ export function extractAdUrl(rawUrl: string): string | null {
 // 비디오 추출 요청
 export async function extractVideoUrl(adUrl: string): Promise<string | null> {
 	try {
-		const response = await fetch(`https://4221-118-130-112-221.ngrok-free.app/fb-video?url=${encodeURIComponent(adUrl)}`);
+		const response = await fetch(`https://6671-118-130-112-221.ngrok-free.app/fb-video?url=${encodeURIComponent(adUrl)}`);
 		const data = await response.json();
 		return data.videoUrl || null;
 	} catch (error) {

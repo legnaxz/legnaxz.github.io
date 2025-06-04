@@ -1,57 +1,54 @@
-// ===========================
-// server.js (백엔드 - Puppeteer)
-// ===========================
 import express from 'express';
 import puppeteer from 'puppeteer';
 import cors from 'cors';
 
 const app = express();
-const PORT = 3000;
-
 app.use(cors());
+app.use(express.json());
+
+app.use((_, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+});
 
 app.get('/fb-video', async (req, res) => {
-    const adId = req.query.id;
-    if (!adId) {
-        return res.status(400).json({ error: 'Missing ad ID' });
-    }
-
-    const targetUrl = `https://www.facebook.com/ads/library/?id=${adId}`;
-    console.log('▶️ Opening URL:', targetUrl);
+    const targetUrl = req.query.url;
+    if (!targetUrl) return res.status(400).json({ error: 'Missing URL' });
 
     try {
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+        const browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
         const page = await browser.newPage();
-        await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
-        // 페이지 안정화를 위해 스크롤 & 타임아웃
-        await page.waitForTimeout(2000);
-        await page.evaluate(() => window.scrollBy(0, 800));
-        await page.waitForTimeout(3000);
+        // ✅ 재생 버튼 기다리고 클릭
+        await page.waitForSelector('div[aria-label="재생"], div[aria-label="Play"]', { timeout: 15000 });
+        await page.click('div[aria-label="재생"], div[aria-label="Play"]');
 
-        // "재생" 버튼 클릭 시도
-        const playBtn = await page.waitForSelector('div[aria-label="재생"], div[aria-label="Play"]', { timeout: 15000 });
-        await playBtn.click();
-        await page.waitForTimeout(5000);
+        // ✅ 영상 로딩 기다림
+        await page.waitForSelector('video', { timeout: 10000 });
 
-        // HTML 내 비디오 URL 추출
-        const content = await page.content();
-        const match = content.match(/"playable_url":"(https:\\u002F\\u002Fvideo[^\"]+)/);
+        // ✅ video src 추출
+        const videoUrl = await page.evaluate(() => {
+            const video = document.querySelector('video');
+            return video?.src || null;
+        });
+
+        // ✅ 스크린샷 저장 (디버깅용)
+        await page.screenshot({ path: 'debug.png', fullPage: true });
 
         await browser.close();
 
-        if (match) {
-            const url = match[1].replace(/\\u002F/g, '/');
-            return res.json({ videoUrl: decodeURIComponent(url) });
-        } else {
-            return res.json({ videoUrl: null });
-        }
-    } catch (err) {
-        console.error('puppeteer error:', err);
-        return res.status(500).json({ error: 'Puppeteer failed' });
+        res.json({ videoUrl });
+    } catch (error) {
+        console.error('puppeteer error:', error);
+        res.status(500).json({ error: 'Puppeteer failed', details: error.message });
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Proxy with puppeteer ready on http://0.0.0.0:${PORT}`);
+app.listen(3000, '0.0.0.0', () => {
+    console.log('✅ Proxy with puppeteer ready on http://0.0.0.0:3000');
 });

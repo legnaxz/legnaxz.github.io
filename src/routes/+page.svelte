@@ -19,7 +19,7 @@
     }
 
     try {
-      const response = await fetch(`https://4221-118-130-112-221.ngrok-free.app/fb-video?id=${encodeURIComponent(adId)}`);
+      const response = await fetch(`https://46671-118-130-112-221.ngrok-free.app/fb-video?id=${encodeURIComponent(adId)}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
