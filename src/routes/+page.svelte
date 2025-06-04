@@ -1,62 +1,60 @@
-<script lang="ts">
-	import { extractVideoUrl } from '$lib/utils';
+<script>
+  import { onMount } from 'svelte';
+  let adId = '';
+  let videoUrl = '';
+  let loading = false;
+  let errorMessage = '';
 
-	let adUrl = '';
-	let videoUrl: string | null = null;
-	let isLoading = false;
-	let error: string | null = null;
+  async function fetchVideo() {
+    if (!adId) return;
 
-	async function handleSubmit() {
-		isLoading = true;
-		error = null;
-		videoUrl = null;
+    loading = true;
+    videoUrl = '';
+    errorMessage = '';
 
-		try {
-			const result = await extractVideoUrl(adUrl);
-			if (result) {
-				videoUrl = result;
-			} else {
-				error = '❌ 동영상을 찾을 수 없습니다.';
-			}
-		} catch (e) {
-			error = '⚠️ 오류 발생: ' + e;
-		} finally {
-			isLoading = false;
-		}
-	}
+    try {
+      const response = await fetch(`https://4221-118-130-112-221.ngrok-free.app/fb-video?url=https://www.facebook.com/ads/library/?id=${adId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.videoUrl) {
+        videoUrl = data.videoUrl;
+      } else {
+        errorMessage = '❌ 동영상 URL을 찾지 못했습니다.';
+      }
+    } catch (error) {
+      console.error('❌ 동영상 추출 실패:', error);
+      errorMessage = `❌ 오류 발생: ${error.message}`;
+    } finally {
+      loading = false;
+    }
+  }
 </script>
 
-<div class="p-6 max-w-xl mx-auto">
-	<h1 class="text-2xl font-bold mb-4">🎥 Facebook 광고 동영상 추출기</h1>
+<main class="p-4 space-y-4">
+  <h1 class="text-xl font-bold">Facebook 광고 동영상 추출기</h1>
 
-	<input
-		class="border px-3 py-2 w-full rounded mb-3"
-		type="text"
-		bind:value={adUrl}
-		placeholder="광고 공유 링크 입력 (예: https://www.facebook.com/ads/library/?id=...)"
-	/>
+  <input
+    bind:value={adId}
+    class="border p-2 rounded w-full"
+    placeholder="광고 ID 입력 (예: 1502024377873930)" />
 
-	<button
-		class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-		on:click={handleSubmit}
-		disabled={isLoading}
-	>
-		{isLoading ? '🔄 추출 중...' : '📥 동영상 추출'}
-	</button>
+  <button on:click={fetchVideo} class="bg-blue-600 text-white px-4 py-2 rounded">
+    동영상 추출
+  </button>
 
-	{#if error}
-		<p class="text-red-500 mt-3">{error}</p>
-	{/if}
-
-	{#if videoUrl}
-		<div class="mt-6">
-			<video controls class="w-full rounded">
-				<source src={videoUrl} type="video/mp4" />
-				브라우저가 video 태그를 지원하지 않습니다.
-			</video>
-			<a href={videoUrl} download class="block mt-3 text-blue-600 hover:underline">
-				⬇️ 동영상 다운로드
-			</a>
-		</div>
-	{/if}
-</div>
+  {#if loading}
+    <p>🔄 추출 중입니다...</p>
+  {:else if videoUrl}
+    <div class="space-y-2">
+      <p>✅ 추출 성공!</p>
+      <a href={videoUrl} target="_blank" class="text-blue-500 underline">동영상 열기</a>
+      <video src={videoUrl} controls class="w-full mt-2"></video>
+    </div>
+  {:else if errorMessage}
+    <p class="text-red-500">{errorMessage}</p>
+  {/if}
+</main>

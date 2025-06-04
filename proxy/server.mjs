@@ -1,11 +1,11 @@
 import express from 'express';
 import puppeteer from 'puppeteer';
+import cors from 'cors';
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
-// ✅ 모든 도메인에서 접근 허용
-app.use(cors());
 app.use((_, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     next();
@@ -43,9 +43,9 @@ app.get('/fb-video', async (req, res) => {
         await browser.close();
 
         res.json({ videoUrl });
-    } catch (err) {
-        console.error('puppeteer error:', err);
-        res.status(500).json({ error: 'Puppeteer failed' });
+    } catch (error) {
+        console.error('puppeteer error:', error);
+        res.status(500).json({ error: 'Puppeteer failed', details: error.message });
     }
 });
 

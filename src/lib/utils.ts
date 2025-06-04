@@ -15,4 +15,3 @@ export async function extractVideoUrl(adUrl: string): Promise<string | null> {
 		console.error('❌ 동영상 추출 실패:', err);
 		return null;
 	}
-}
