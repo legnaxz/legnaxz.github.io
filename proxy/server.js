@@ -1,9 +1,13 @@
 // ✅ backend: server.js
 import express from 'express';
 import puppeteer from 'puppeteer';
-
+import cors from 'cors';
 const app = express();
-
+app.use(cors());
+app.use((req, res, next) => {
+    res.setHeader('ngrok-skip-browser-warning', 'true'); // 👈 반드시 필요
+    next();
+});
 app.get('/fb-video', async (req, res) => {
     const rawUrl = req.query.url;
     if (!rawUrl || !rawUrl.includes('facebook.com/ads/library/?id=')) {
