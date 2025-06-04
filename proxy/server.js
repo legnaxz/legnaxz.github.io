@@ -1,51 +1,45 @@
+// ✅ backend: server.js
 import express from 'express';
 import puppeteer from 'puppeteer';
-import cors from 'cors';
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.use((_, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    next();
-});
 
 app.get('/fb-video', async (req, res) => {
-    const targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).json({ error: 'Missing URL' });
+    const rawUrl = req.query.url;
+    if (!rawUrl || !rawUrl.includes('facebook.com/ads/library/?id=')) {
+        return res.status(400).json({ error: 'Invalid or missing URL' });
+    }
 
+    console.log('▶️ Opening URL:', rawUrl);
     try {
-        const browser = await puppeteer.launch({
-            headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
-        await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+        await page.goto(rawUrl, { waitUntil: 'networkidle2', timeout: 30000 });
 
-        // ✅ 재생 버튼 기다리고 클릭
-        await page.waitForSelector('div[aria-label="재생"], div[aria-label="Play"]', { timeout: 15000 });
-        await page.click('div[aria-label="재생"], div[aria-label="Play"]');
+        // 재생 버튼 클릭 시도
+        try {
+            await page.waitForSelector('div[aria-label="재생"], div[aria-label="Play"]', { timeout: 15000 });
+            await page.click('div[aria-label="재생"], div[aria-label="Play"]');
+            await page.waitForTimeout(3000); // 비디오 로딩 대기
+        } catch (e) {
+            console.warn('⚠️ 재생 버튼 클릭 실패 또는 타임아웃');
+        }
 
-        // ✅ 영상 로딩 기다림
-        await page.waitForSelector('video', { timeout: 10000 });
-
-        // ✅ video src 추출
-        const videoUrl = await page.evaluate(() => {
-            const video = document.querySelector('video');
-            return video?.src || null;
-        });
-
-        // ✅ 스크린샷 저장 (디버깅용)
-        await page.screenshot({ path: 'debug.png', fullPage: true });
+        const content = await page.content();
+        const match = content.match(/"playable_url":"(https:\\u002F\\u002Fvideo[^"]+)"/);
+        const title = await page.$eval('meta[property="og:title"]', el => el.content).catch(() => null);
 
         await browser.close();
 
-        res.json({ videoUrl });
-    } catch (error) {
-        console.error('puppeteer error:', error);
-        res.status(500).json({ error: 'Puppeteer failed', details: error.message });
+        if (match) {
+            const url = match[1].replace(/\\u002F/g, '/');
+            return res.json({ videoUrl: decodeURIComponent(url), title });
+        } else {
+            return res.json({ videoUrl: null });
+        }
+    } catch (err) {
+        console.error('puppeteer error:', err);
+        return res.status(500).json({ error: 'Puppeteer failed' });
     }
 });
 
