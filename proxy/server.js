@@ -1,12 +1,13 @@
-// ✅ backend: server.js
 import express from 'express';
 import puppeteer from 'puppeteer';
 import cors from 'cors';
 
 const app = express();
+
+// ✅ CORS 및 ngrok 우회 헤더 설정
 app.use(cors());
 app.use((req, res, next) => {
-    res.setHeader('ngrok-skip-browser-warning', 'true'); // 👈 반드시 필요
+    res.setHeader('ngrok-skip-browser-warning', 'true');
     next();
 });
 
@@ -16,13 +17,11 @@ app.get('/fb-video', async (req, res) => {
         return res.status(400).json({ error: 'Invalid or missing URL' });
     }
 
-    console.log('▶️ Opening URL:', rawUrl);
-
-    const urlObj = new URL(rawUrl);
-    const idMatch = urlObj.searchParams.get('id');
-    const videoId = idMatch || 'unknown';
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const videoId = new URL(rawUrl).searchParams.get('id') || 'unknown';
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const filename = `${today}_${videoId}.mp4`;
+
+    console.log('▶️ Opening URL:', rawUrl);
 
     try {
         const browser = await puppeteer.launch({
@@ -31,6 +30,9 @@ app.get('/fb-video', async (req, res) => {
         });
         const page = await browser.newPage();
         await page.goto(rawUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+
+        let videoUrl = null;
+        let title = null;
 
         try {
             console.log('✅ 재생버튼 탐지 시도');
@@ -45,17 +47,16 @@ app.get('/fb-video', async (req, res) => {
             const content = await page.content();
             console.log('📄 HTML 길이:', content.length);
 
-            let title = null;
             try {
                 title = await page.$eval('meta[property="og:title"]', el => el.content);
             } catch {
                 title = await page.title();
             }
+
             console.log('🎬 Extracted Title:', title);
 
-            let match = content.match(/"playable_url":"(https:\\u002F\\u002Fvideo[^"]+)"/);
-            let videoUrl = null;
-
+            // playable_url 추출
+            const match = content.match(/"playable_url":"(https:\\u002F\\u002Fvideo[^"]+)"/);
             if (match) {
                 console.log('✅ playable_url 발견됨');
                 videoUrl = decodeURIComponent(match[1].replace(/\\u002F/g, '/'));
@@ -64,25 +65,13 @@ app.get('/fb-video', async (req, res) => {
                 videoUrl = await page.$eval('video', el => el.src).catch(() => null);
             }
 
-            await browser.close();
-
-            return res.json({ videoUrl, title, filename });
         } catch (e) {
             console.warn('⚠️ 재생 버튼 클릭 실패 또는 타임아웃');
         }
 
-        const content = await page.content();
-        const match = content.match(/"playable_url":"(https:\\u002F\\u002Fvideo[^"]+)"/);
-        const title = await page.$eval('meta[property="og:title"]', el => el.content).catch(() => null);
-        console.log('🎬 Extracted Title:', title);
         await browser.close();
 
-        if (match) {
-            const url = match[1].replace(/\\u002F/g, '/');
-            return res.json({ videoUrl: decodeURIComponent(url), title, filename });
-        } else {
-            return res.json({ videoUrl: null });
-        }
+        return res.json({ videoUrl, title, filename });
     } catch (err) {
         console.error('puppeteer error:', err);
         return res.status(500).json({ error: 'Puppeteer failed' });

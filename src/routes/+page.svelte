@@ -1,45 +1,48 @@
 <script lang="ts">
-  import { fetchFbVideo } from '$lib/api/fetchVideo';
+ import { fetchFbVideo } from '$lib/api/fetchVideo';
 
-  let adUrl = '';
-  let videoUrl: string | null = null;
-  let filename: string = '';
-  let isLoading = false;
-  let errorMessage = '';
+let adUrl = '';
+let videoUrl: string | null = null;
+let videoTitle: string = '';
+let downloadFilename: string = '';
+let isLoading = false;
+let errorMessage = '';
 
-  async function extractVideoUrl() {
-    if (!adUrl.includes('facebook.com/ads/library/?id=')) {
-      errorMessage = '올바른 Facebook 광고 URL을 입력해주세요.';
-      return;
-    }
-
-    isLoading = true;
-    videoUrl = null;
-    filename = '';
-    errorMessage = '';
-
-    try {
-      const data = await fetchFbVideo(adUrl);
-      if (data.videoUrl) {
-        videoUrl = data.videoUrl;
-        filename = data.filename || 'facebook_video.mp4';
-
-        // ✅ 자동 다운로드 트리거
-        const a = document.createElement('a');
-        a.href = videoUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        errorMessage = '동영상을 찾을 수 없습니다.';
-      }
-    } catch (err) {
-      errorMessage = `요청 실패: ${err.message}`;
-    } finally {
-      isLoading = false;
-    }
+async function extractVideoUrl() {
+  if (!adUrl.includes('facebook.com/ads/library/?id=')) {
+    errorMessage = '올바른 Facebook 광고 URL을 입력해주세요.';
+    return;
   }
+
+  isLoading = true;
+  videoUrl = null;
+  videoTitle = '';
+  downloadFilename = '';
+  errorMessage = '';
+
+  try {
+    const data = await fetchFbVideo(adUrl);
+    if (data.videoUrl) {
+      videoUrl = data.videoUrl;
+      videoTitle = data.title || 'facebook_video';
+      downloadFilename = data.filename || 'video.mp4'; // ✅ 백엔드가 준 이름 우선
+
+      // ✅ 자동 다운로드
+      const a = document.createElement('a');
+      a.href = videoUrl;
+      a.download = downloadFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      errorMessage = '동영상을 찾을 수 없습니다.';
+    }
+  } catch (err) {
+    errorMessage = `요청 실패: ${err.message}`;
+  } finally {
+    isLoading = false;
+  }
+}
 </script>
 
 <main class="p-6 max-w-xl mx-auto space-y-4">
