@@ -16,7 +16,7 @@
     videoUrl = null;
     errorMessage = '';
 
-    const apiBase = 'https://6671-118-130-112-221.ngrok-free.app '; // ngrok 주소로 수정
+    const apiBase = 'https://6671-118-130-112-221.ngrok-free.app'; // ngrok 주소로 수정
     const encodedUrl = encodeURIComponent(adUrl);
     const endpoint = `${apiBase}/fb-video?url=${encodedUrl}`;
 
