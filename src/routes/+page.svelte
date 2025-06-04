@@ -3,56 +3,42 @@
 
   let adUrl = '';
   let videoUrl: string | null = null;
-  let videoTitle: string = '';
+  let filename: string = '';
   let isLoading = false;
   let errorMessage = '';
 
   async function extractVideoUrl() {
-  if (!adUrl.includes('facebook.com/ads/library/?id=')) {
-    errorMessage = '올바른 Facebook 광고 URL을 입력해주세요.';
-    return;
-  }
-
-  isLoading = true;
-  videoUrl = null;
-  videoTitle = '';
-  errorMessage = '';
-
-  try {
-    const data = await fetchFbVideo(adUrl);
-    if (data.videoUrl) {
-      videoUrl = data.videoUrl;
-      videoTitle = data.title || 'facebook_video';
-
-      // ✅ 자동 다운로드 트리거
-      const a = document.createElement('a');
-      a.href = videoUrl;
-      a.download = sanitizeFilename(videoTitle) + '.mp4';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      // ✅ UI 초기화
-      setTimeout(() => {
-        adUrl = '';
-        videoUrl = null;
-        videoTitle = '';
-        errorMessage = '';
-      }, 1000); // 1초 뒤 초기화
-    } else {
-      errorMessage = '동영상을 찾을 수 없습니다.';
+    if (!adUrl.includes('facebook.com/ads/library/?id=')) {
+      errorMessage = '올바른 Facebook 광고 URL을 입력해주세요.';
+      return;
     }
-  } catch (err) {
-    errorMessage = `요청 실패: ${err.message}`;
-  } finally {
-    isLoading = false;
-  }
-}
 
-  // 파일명에서 특수문자 제거 (크롬 안정성)
-  function sanitizeFilename(name: string): string {
-    return name.replace(/[^a-z0-9가-힣_\- ]/gi, '_').slice(0, 50);
+    isLoading = true;
+    videoUrl = null;
+    filename = '';
+    errorMessage = '';
+
+    try {
+      const data = await fetchFbVideo(adUrl);
+      if (data.videoUrl) {
+        videoUrl = data.videoUrl;
+        filename = data.filename || 'facebook_video.mp4';
+
+        // ✅ 자동 다운로드 트리거
+        const a = document.createElement('a');
+        a.href = videoUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        errorMessage = '동영상을 찾을 수 없습니다.';
+      }
+    } catch (err) {
+      errorMessage = `요청 실패: ${err.message}`;
+    } finally {
+      isLoading = false;
+    }
   }
 </script>
 
@@ -85,7 +71,7 @@
         class="block mt-2 text-blue-600 underline"
         href={videoUrl}
         target="_blank"
-        download={sanitizeFilename(videoTitle) + '.mp4'}
+        download={filename}
       >
         ⬇️ 수동 다운로드
       </a>
